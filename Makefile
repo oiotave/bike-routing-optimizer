@@ -5,7 +5,7 @@ CXXFLAGS = -Wall -std=c++17 -O2
 
 OBJDIR = bin
 
-SRC = main.cpp algorithms/algorithms.cpp
+SRC = main.cpp algorithms/algorithms.cpp algorithms/vnd.cpp
 
 OBJ = $(patsubst %.cpp,$(OBJDIR)/%.o,$(SRC))
 

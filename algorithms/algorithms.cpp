@@ -6,48 +6,52 @@
 
 using namespace std;
 
+Algorithms::Algorithms() {
+}
+
 void Algorithms::swap(vector<HeapNode> &heap, int addr1, int addr2) {
     HeapNode aux = heap[addr1];
     heap[addr1] = heap[addr2];
     heap[addr2] = aux;
 }
 
-void Algorithms::heapify(vector<HeapNode> &heap, int index, int tam) {
-    int min = index, left = 2 * index + 1, right = 2 * index + 2;
+void Algorithms::heapify(vector<HeapNode> &heap, int index, int size) {
+    int min = index;
+    int left = 2 * index + 1, right = 2 * index + 2;
 
-    if(left < tam and heap[left].value < heap[min].value) min = left;
-    if(right < tam and heap[right].value < heap[min].value) min = right;
+    if(left < size and heap[left].value < heap[min].value)  min = left;
+    if(right < size and heap[right].value < heap[min].value) min = right;
     
     if(min != index) {
         swap(heap, min, index);
-        heapify(heap, min, tam);
+        heapify(heap, min, size);
     }
 }
 
-void Algorithms::makeHeap(int tam, vector<HeapNode> &heap) {
-    int initial_node = (tam / 2) - 1;
-    for(int i = initial_node; i >= 0; i--) heapify(heap, i, tam);
+void Algorithms::makeHeap(int size, vector<HeapNode> &heap) {
+    int initial_node = (size / 2) - 1;
+    for(int i = initial_node; i >= 0; i--) heapify(heap, i, size);
 }
 
 bool Algorithms::isValid(Data *data, HeapNode station, int *current_load, int *initial_load) {
     int dest = station.destination;
-    
-    // Verifica se a demanda da próxima estação fura a capacidade do veículo
-    if(*current_load + data->demands[dest - 1] > data->vehicle_capacity) return false;
-    
-    if(*current_load + data->demands[dest - 1] < 0) {
-        if(*initial_load + abs(*current_load + data->demands[dest - 1]) > data->vehicle_capacity) return false;
+    int future_load = *current_load + data->demands[dest - 1];
 
-        else {
-            *initial_load = *initial_load + abs(*current_load + data->demands[dest - 1]);
-            *current_load = *current_load + abs(*current_load + data->demands[dest - 1]) + data->demands[dest - 1];
-            return true;
-        }
-    }
-    else {
-        *current_load = *current_load + data->demands[dest - 1];
+    // Verifica se a demanda da próxima estação fura a capacidade do veículo
+    if(future_load > data->vehicle_capacity) return false;
+    
+    // Verifica se a demanda da próxima estação poderia ter sido atendida desde o depósito
+    if(future_load < 0 and *initial_load + abs(future_load) > data->vehicle_capacity) return false;
+
+    // Caso para quando for possível satisfazer a demanda da próxima desde o depósito
+    if(future_load < 0 and *initial_load + abs(future_load) <= data->vehicle_capacity) {
+        *initial_load = *initial_load + abs(*current_load + data->demands[dest - 1]);
+        *current_load = *current_load + abs(*current_load + data->demands[dest - 1]) + data->demands[dest - 1];
         return true;
     }
+    // Senão, é possível atender a demanda da próxima com a carga atual
+    *current_load = *current_load + data->demands[dest - 1];
+    return true;
 }
 
 void Algorithms::greedySolver(Data* data, Solution* solution) {
@@ -101,4 +105,13 @@ void Algorithms::greedySolver(Data* data, Solution* solution) {
     }
 }
 
-void Algorithms::vnd() {}
+void Algorithms::primInspired(Data* data, Solution* solution) {
+    /*
+        1. Inicializar todas as rotas como 0 - 0
+        2. Para cada nó que ainda não está na solução
+            2.1. Para cada rota
+                2.1.1. Cheque se esse nó pode entrar no fim da rota
+                2.1.2. Se sim, veja se a inserção é a inserção com menor custo para esse nó
+                2.1.3. Ao final, insira o nó na rota com o menor custo
+    */
+}

@@ -15,6 +15,6 @@ class Algorithms {
     public:
         Algorithms();
         static void greedySolver(Data*, Solution*);
-        static void vnd();
+        static void primInspired(Data*, Solution*);
 };
 #endif // ALGORITHMS_HPP
