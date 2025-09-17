@@ -3,6 +3,7 @@
 #include "algorithms/vnd.hpp"
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <cerrno>
@@ -10,11 +11,71 @@
 
 using namespace std;
 
-// Função para leitura do arquivo de entrada
-int readFile(string, Data*);
+int readFile(string path, Data* data) { 
+    FILE *file = fopen(path.c_str(), "r");
 
-// Mostra a solução
-void printSolution(Solution*);
+    if(!file) {
+        cerr << "Erro ao abrir o arquivo" << endl;
+        exit(1);
+    }
+    if(fscanf(file, "%d", &data->facilities) != 1 or 
+       fscanf(file, "%d", &data->vehicle_number) != 1 or
+       fscanf(file, "%d", &data->vehicle_capacity) != 1) return 1;
+       
+    data->demands.resize(data->facilities);
+    for(int i = 0; i < (int) data->demands.size(); i++) 
+        if(fscanf(file, "%d", &data->demands[i]) != 1) return 1;
+
+    data->transit_cost.resize(data->facilities + 1);
+    for(int j = 0; j < (int) data->facilities + 1; j++) data->transit_cost[j].resize(data->facilities + 1);
+    
+    for(int k = 0; k < (int) data->transit_cost.size(); k++) {
+        for(int l = 0; l < (int) data->transit_cost[k].size(); l++) {
+            if(fscanf(file, "%d", &data->transit_cost[k][l]) != 1) return 1;
+        }
+    }    
+    fclose(file);
+    return 0;
+}
+
+void printSolution(Solution solution) {
+    for(int i = 0; i < (int) solution.routes.size(); i++) {
+        cout << "Rota " << i + 1 << ": ";
+        for(int j = 0; j < (int) solution.routes[i].size(); j++) cout << solution.routes[i][j] << " ";
+        cout << endl;
+    }
+    cout << endl;
+    cout << "Custo: " << solution.cost << endl;    
+}
+
+void printCost(Solution solution, Data data) {
+    int trueCost = 0;
+    for(int i = 0; i < (int) solution.routes.size(); i++) {
+        vector<int> curr_r = solution.routes[i];
+        for(int j = 0; j < (int) curr_r.size() - 1; j++) {
+            trueCost += data.transit_cost[curr_r[j]][curr_r[j+1]];
+        }
+    }
+    cout << "Custo real: " << trueCost << "\tDiferenca: " << solution.cost-trueCost << endl;
+}
+
+void runner(Solution* solution, Data* data, int algorithm, int neighbor) {
+    switch(algorithm) {
+        case 1:
+        Algorithms::greedySolver(data, solution);
+        break;
+        
+        case 2:
+        Algorithms::bestInsertion(data, solution);
+        break;
+        
+        default: return;
+    }
+    Vnd::vndAlgorithm(solution, data, neighbor);
+
+    printSolution(*solution);
+    printCost(*solution, *data);
+}
 
 int main(int argc, char* argv[]) {
     Data data;
@@ -25,128 +86,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     readFile(argv[1], &data);
-    solution.routes.resize(data.vehicle_number);
 
-    // Resolve o problema com o algoritmo guloso
-    Algorithms::greedySolver(&data, &solution);
-    printSolution(&solution);
-
-    // Melhora com o VND
-    Vnd::vndAlgorithm(&solution, &data, 4);
-    printSolution(&solution);
-
+    runner(&solution, &data, 1, 4);
     return 0;
-}
-
-int readFile(string path, Data* data) {
-    
-    /*
-    -- NOVA LEITURA DE ARQUIVO COM FSCANF (NÃO ESTÁ COMPLETO)
-    
-    FILE *file = fopen(path.c_str(), "r");
-
-    if(!file) {
-        cerr << "Erro ao abrir o arquivo" << endl;
-        return 1;
-    }
-    if(fscanf(file, "%d", &data->facilities) != 1 or 
-       fscanf(file, "%d", &data->vehicle_number) != 1 or
-       fscanf(file, "%d", &data->vehicle_capacity) != 1) return 1;
-       
-    data->demands.resize(data->facilities);
-    for(int i = 0; i < (int) data->demands.size(); i++) fscanf(file, "%d", &data->demands[i]);
-
-    data->transit_cost.resize(data->facilities + 1);
-    for(int j = 0; j < (int) data->facilities.size(); j++) data->transit_cost[j].resize(data->facilities + 1);
-    
-    for(int k = 0; k < (int) data->transit_cost; k++) {
-
-    }
-    
-
-    for(int i = 0; i < (int) data->demands.size(); i++) {
-        cout << data->demands[i] << endl;
-    }
-/*
-    char line[200];
-    fgets(line, sizeof(line), file);
-
-    if(fgets(line, sizeof(line), file)) {
-        char* token = strtok(line, " \n");
-        while(token) {
-            string value(token);
-            data->demands.push_back(stoi(value));
-            token = strtok(nullptr, " \n");
-        }
-    }
-    fgets(line, sizeof(line), file);
-
-    for(int i = 0; i < data->facilities + 1; i++) {
-        if(fgets(line, sizeof(line), file)) {
-            char* token = strtok(line, " \n");
-            while(token) {
-                string value(token);
-                data->transit_cost[i].push_back(stoi(value));
-                token = strtok(nullptr, " \n");
-            } 
-        }
-    }
-    fclose(file);
-    */
-
-    ifstream file(path);
-    string linha, aux;
-
-    if(!file.is_open()) {
-        cerr << "Erro ao abrir o arquivo" << endl;
-        return 1;
-    }
-    getline(file, linha);
-    data->facilities = stoi(linha);
-    data->transit_cost.resize(data->facilities + 1);
-
-    getline(file, linha);
-    data->vehicle_number = stoi(linha);
-    
-    getline(file, linha);
-    data->vehicle_capacity = stoi(linha);
-    
-    getline(file, linha); // Consome a linha vazia
-    getline(file, linha);
-
-    size_t i = 0, j;
-    while(i < linha.length()){
-        if(linha[i] == ' ') {
-            data->demands.push_back(stoi(aux));
-            aux = "";
-        }
-        aux += linha[i++];
-    }
-    if(aux != "") data->demands.push_back(stoi(aux));
-    getline(file, linha);
-    
-    i = 0;
-    while(getline(file, linha)) {
-        j = 0, aux = "";
-        while(j < linha.length()){
-            if(linha[j] == ' ') {
-                data->transit_cost[i].push_back(stoi(aux));
-                aux = "";
-            }
-            aux += linha[j++];
-        }
-        if(aux != "") data->transit_cost[i++].push_back(stoi(aux));
-    }
-    file.close();
-
-    return 0;
-}
-
-void printSolution(Solution* solution) {
-    for(int i = 0; i < (int) solution->routes.size(); i++) {
-        cout << "Rota " << i + 1 << ": ";
-        for(int j = 0; j < (int) solution->routes[i].size(); j++) cout << solution->routes[i][j] << " ";
-        cout << endl;
-    }
-    cout << "Custo: " << solution->cost << endl;    
 }

@@ -6,44 +6,49 @@
 using namespace std;
 
 struct solution_t {
-    int cost; // Custo total do problema
-    int used_vehicles; // Número total de veículos usados
-    vector<vector<int>> routes; // Caminho de cada rota
+    // Custo total da solução
+    int cost;
 
-    solution_t() {
-        this->cost = 0;
-        this->used_vehicles = 0;
-    }
+    // Número total de veículos usados
+    int used_vehicles;
+
+    // Caminho de cada rota feita
+    vector<vector<int>> routes;
+
+    solution_t() { this->cost = 0; this->used_vehicles = 0; }
 };
 typedef solution_t Solution;
 
 struct data_t {
-    int facilities; // Quantidade de estações (sem contar o depósito)
-    int vehicle_number; // Quantidade total de veículos possíveis
-    int vehicle_capacity; // Capacidade de cada veículo
-    vector<int> demands; // Demanda de cada estação
-    vector<vector<int>> transit_cost; // Matriz de custo de travessia entre as estações e o depósito
+    // Quantas de estações (desconsiderando o depósito)
+    int facilities;
 
-    data_t() {
-        this->facilities = 0;
-        this->vehicle_number = 0;
-        this->vehicle_capacity = 0;
-    }
+    // Quantidade total de veículos disponíveis
+    int vehicle_number;
+
+    // Capacidade de cada veículo
+    int vehicle_capacity;
+
+    // Demanda de bicicletas de cada estação
+    vector<int> demands;
+
+    // Matriz de custo de travessia entre as estações e o depósito
+    vector<vector<int>> transit_cost; 
+
+    data_t() { this->facilities = 0; this->vehicle_number = 0; this->vehicle_capacity = 0; }
 };
 typedef data_t Data;
 
 struct heapNode_t {
-    int value; // Custo do nó (estação)
-    int destination; // Nó (estação) associada ao custo
+    // Custo de trânsito associado a uma estação
+    int value;
 
-    heapNode_t() { // Construtor padrão
-        this->value = 0;
-        this->destination = 0;
-    }
-    heapNode_t(int value, int destination) { // Construtor parâmetro
-        this->value = value;
-        this->destination = destination;
-    } 
+    // Estação associada ao custo
+    int destination; 
+
+    heapNode_t() { this->value = 0; this->destination = 0; }
+    
+    heapNode_t(int value, int destination) { this->value = value; this->destination = destination; } 
 };
 typedef struct heapNode_t HeapNode;
 

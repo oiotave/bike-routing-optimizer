@@ -9,179 +9,162 @@
 
 using namespace std;
 
-bool Vnd::checkSolution(vector<int> route, Data* data) {
-    int initial_load = 0, current_load = 0;
-    
-    for(int i = 0; i < (int) route.size() - 2; i++) {
-        if(current_load + data->demands[route[i + 1] - 1] > data->vehicle_capacity) return false;
-
-        if(current_load + data->demands[route[i + 1] - 1] < 0) {
-            if(initial_load + abs(current_load + data->demands[route[i + 1] - 1]) > data->vehicle_capacity) return false;
-
-            else {
-                initial_load = initial_load + abs(current_load + data->demands[route[i + 1] - 1]);
-                current_load = current_load + abs(current_load + data->demands[route[i + 1] - 1]) + data->demands[route[i + 1] - 1];
-                continue;
-            }
-        }
-        else {
-            current_load = current_load + data->demands[route[i + 1] - 1];
-            continue;
-        }
-    }
-    return true;
+Vnd::Vnd() {
 }
 
-bool Vnd::checkSolution(vector<int> route1, vector<int> route2, Data* data) {
-    int initial_load = 0, current_load = 0;
+bool Vnd::isValid(vector<int> &route, Data* data) {
+    int load = 0, initial_load = 0;
 
-    for(int j = 0; j < 2; j++) {  
-        vector<int> aux_route = (j == 0 ? route1 : route2);
+    // Acumula as cargas sucessivas ao longo da rota
+    for(int i = 1; i < (int) route.size(); i++) {
+        load += data->demands[route[i] - 1];
         
-        for(int i = 0; i < (int) (aux_route.size() - 2); i++) {
-            if(current_load + data->demands[aux_route[i + 1] - 1] > data->vehicle_capacity) return false;
-
-            if(current_load + data->demands[aux_route[i + 1] - 1] < 0) {
-                if(initial_load + abs(current_load + data->demands[aux_route[i + 1] - 1]) > data->vehicle_capacity) return false;
-
-                else {
-                    initial_load = initial_load + abs(current_load + data->demands[aux_route[i + 1] - 1]);
-                    current_load = current_load + abs(current_load + data->demands[aux_route[i + 1] - 1]) + data->demands[aux_route[i + 1] - 1];
-                    continue;
-                }
-            }
-            else {
-                current_load = current_load + data->demands[aux_route[i + 1] - 1];
-                continue;
-            }
-        }
-        initial_load = 0, current_load = 0;
+        // Se a carga atual for insuficiente, corrige a demanda na carga inicial 
+        if(load < initial_load) initial_load = load;
     }
-    return true;
+    if(abs(initial_load) > data->vehicle_capacity) return false;
+
+    // Valor mínimo de bicicletas para sair do depósito para poder cumprir a rota
+    int required_initial = abs(initial_load);
+
+    // Verifica se não ultrapassa capacidade em nenhum ponto
+    load = required_initial;
+    for(int j = 1; j < (int) route.size(); j++) {
+        load += data->demands[route[j] - 1];
+
+        if(load < 0 || load > data->vehicle_capacity) return false;
+    }
+    return required_initial <= data->vehicle_capacity;
 }
 
 bool Vnd::intraSwap(Solution* solution, Data* data) {
     int ibest = 0, jbest = 0, best_solution = solution->cost;
-    bool flag = false;
     
-    for(int k = 0; k < (int) solution->routes.size(); k++) { // Para cada rota
-        vector<int> &route = solution->routes[k]; // Pegamos a rota
-        if(route.size() <= 3) continue; // Trata soluções com um elemento ou nenhum
+    // Percorre-se cada rota da solução
+    for(int k = 0; k < (int) solution->routes.size(); k++) {
+        int new_solution;
+        vector<int> &route = solution->routes[k];
         
-        for(int i = 1; i < (int) route.size() - 2; i++) { // Para cada elemento da rota
-            for(int j = i + 1; j < (int) route.size() - 1; j++) { // Testaremos trocar com os próximos elementos
-                // Swap de estações adjacentes
+        // Desconsidera rotas que visitam uma estação apenas
+        if(route.size() <= 3) continue;
+        
+        // Percorre-se cada conjunto de duas estações distintas da rota
+        for(int i = 1; i < (int) route.size() - 2; i++) { 
+            for(int j = i + 1; j < (int) route.size() - 1; j++) {
+                // Lógica de cálculo da nova solução para estações adjacentes
                 if(j == i + 1) {
-                    int new_solution = solution->cost - (data->transit_cost[route[i - 1]][route[i]] + data->transit_cost[route[i]][route[j]] +
-                        data->transit_cost[route[j]][route[j + 1]]) + data->transit_cost[route[i - 1]][route[j]] +
-                        data->transit_cost[route[j]][route[i]] + data->transit_cost[route[i]][route[j + 1]];
-   
-                    if(best_solution > new_solution) {
-                        vector<int> aux_route = route;
-                        swap(aux_route[i], aux_route[j]);
-
-                        if(checkSolution(aux_route, data)) {
-                            ibest = i;
-                            jbest = j;
-                            best_solution = new_solution;
-                            flag = true;
-                        }
-                    }
-                    else continue;
+                    new_solution =  solution->cost 
+                    - data->transit_cost[route[i - 1]][route[i]] - data->transit_cost[route[i]][route[j]]
+                    - data->transit_cost[route[j]][route[j + 1]] + data->transit_cost[route[i - 1]][route[j]] 
+                    + data->transit_cost[route[j]][route[i]] + data->transit_cost[route[i]][route[j + 1]];
                 }
-                // Swap de estações não-adjacentes
+                // Lógica de cálculo da nova solução para estações não-adjacentes
                 else {
-                    int new_solution = solution->cost - (data->transit_cost[route[i - 1]][route[i]] +
-                        data->transit_cost[route[i]][route[i + 1]] + data->transit_cost[route[j - 1]][route[j]] +
-                        data->transit_cost[route[j]][route[j + 1]]) + data->transit_cost[route[i - 1]][route[j]] +
-                        data->transit_cost[route[j]][route[i + 1]] + data->transit_cost[route[j - 1]][route[i]] +
-                        data->transit_cost[route[i]][route[j + 1]];
-                    
-                    if(best_solution > new_solution) {
-                        vector<int> aux_route = route;
-                        swap(aux_route[i], aux_route[j]);
-
-                        if(checkSolution(aux_route, data)) {
-                            ibest = i;
-                            jbest = j;
-                            best_solution = new_solution;
-                            flag = true;
-                        }
-                    }
-                    else continue;
+                    new_solution = solution->cost 
+                    - data->transit_cost[route[i - 1]][route[i]] - data->transit_cost[route[i]][route[i + 1]] 
+                    - data->transit_cost[route[j - 1]][route[j]] - data->transit_cost[route[j]][route[j + 1]]
+                    + data->transit_cost[route[i - 1]][route[j]] + data->transit_cost[route[j]][route[i + 1]] 
+                    + data->transit_cost[route[j - 1]][route[i]] + data->transit_cost[route[i]][route[j + 1]];
                 }
+                if(best_solution > new_solution) {
+                    swap(route[i], route[j]);
+
+                    // Verifica a validade da nova solução
+                    if(isValid(route, data)) {
+                        swap(route[i], route[j]);
+                        best_solution = new_solution;
+                        ibest = i;
+                        jbest = j;
+                    }
+                    // Se não for válida, só desfaz o swap anterior
+                    else swap(route[i], route[j]);
+                } 
+                else continue;
             }
         }
+        // Atualiza para a melhor solução válida encontrada
         if(solution->cost != best_solution) {
             swap(route[ibest], route[jbest]);
             solution->cost = best_solution;
+            return true;
         }
-        ibest = 0;
-        jbest = 0;
     }
-    return flag;
+    return false;
 }
 
 bool Vnd::intraReinsertion(Solution* solution, Data* data) {
-    int ibest = 0, jbest = 0, best_solution = solution->cost;
-    bool flag = false;
+    int best_element = 0, best_position = 0, best_solution = solution->cost;
     
-    for(int k = 0; k < (int) solution->routes.size(); k++) { // Para cada rota
-        vector<int> &route = solution->routes[k]; // Renomeia vetor
+    // Percorre cada rota da solução
+    for(int k = 0; k < (int) solution->routes.size(); k++) {
+        vector<int> &route = solution->routes[k];
         
-        if(route.size() <= 3) continue; // Trata soluções com uma estação ou nenhuma
+        // Não há reinserções em rotas com apenas uma estação
+        if(route.size() <= 3) continue;
 
-        for(int i = 1; i < (int) route.size() - 1; i++) { // Para cada elemento i
-            for(int j = 1; j < (int) route.size() - 1; j++) { // Para cada elemento j
-               if(i == j or i == j - 1 or i == j + 1) continue;
+        // Percorre cada elemento e testa a solução para cada posição possível na rota
+        for(int i = 1; i < (int) route.size() - 1; i++) {
+            for(int j = 1; j < (int) route.size() - 1; j++) {
+                // ignora casos análogos a swap ou com origem e destino iguais
+                if(i == j or i == j - 1 or i == j + 1) continue;
 
-               int new_solution = solution->cost 
-                - (data->transit_cost[route[i - 1]][route[i]]
-                + data->transit_cost[route[i]][route[i + 1]]
-                + data->transit_cost[route[j]][route[j + 1]])
+                int new_solution = solution->cost 
+                - data->transit_cost[route[i - 1]][route[i]]
+                - data->transit_cost[route[i]][route[i + 1]]
+                - data->transit_cost[route[j - 1]][route[j]]
                 + data->transit_cost[route[i - 1]][route[i + 1]]
-                + data->transit_cost[route[j]][route[i]]
-                + data->transit_cost[route[i]][route[j + 1]];
+                + data->transit_cost[route[j - 1]][route[i]]
+                + data->transit_cost[route[i]][route[j]];
 
                 if(best_solution > new_solution) {
                     vector<int> aux_route = route;
                     int aux = route[i];
                     aux_route.erase(aux_route.begin() + i);
-                    aux_route.insert(aux_route.begin() + j, aux);
+                    
+                    if(j < i) aux_route.insert(aux_route.begin() + j, aux);
+                    
+                    else aux_route.insert(aux_route.begin() + j - 1, aux);
 
-                    if(checkSolution(aux_route, data)) {
-                        ibest = i;
-                        jbest = j;
+                    // Verifica a validade da solução
+                    if(isValid(aux_route, data)) {
                         best_solution = new_solution;
-                        flag = true;
+                        best_element = i;
+                        best_position = j;
                     }
                 }
                 else continue;
             }
         }
+        // Substitui a solução com a melhor reinserção e custo
         if(solution->cost != best_solution) {
-            int aux = route[ibest];
-            route.erase(route.begin() + ibest);
-            route.insert(route.begin() + jbest, aux);
+            int aux = route[best_element];
+            route.erase(route.begin() + best_element);
+            
+            if(best_position < best_element) route.insert(route.begin() + best_position, aux);
+            
+            else route.insert(route.begin() + best_position - 1, aux);
             solution->cost = best_solution;
+            return true;
         }
     }
-    return flag;
+    return false;
 }
 
 bool Vnd::interSwap(Solution* solution, Data* data) {
     int best_solution = solution->cost;
-    int ibest = 0, jbest = 0, r1best = 0, r2best = 0;
-    bool flag = false;
+    int ibest = 0, jbest = 0, best_route1 = 0, best_route2 = 0;
     
     // Percorre cada rota da solução
     for(int i = 0; i < (int) solution->routes.size() - 1; i++) {
         vector<int> &route1 = solution->routes[i];
-        // Percorre as rotas restantes
+        
+        // Percorre as outras rotas restantes
         for(int j = i + 1; j < (int) solution->routes.size(); j++) {
             vector<int> &route2 = solution->routes[j];
+            
             // Pecorre cada elemento da primeira rota para verificar swap
             for(int k = 1; k < (int) solution->routes[i].size() - 1; k++) {
+                
                 // Percorre cada elemento da segunda rota para verificar swap
                 for(int l = 1; l < (int) solution->routes[j].size() - 1; l++) {
 
@@ -195,13 +178,13 @@ bool Vnd::interSwap(Solution* solution, Data* data) {
                         vector<int> aux_route = route1, bux_route = route2;
                         swap(aux_route[k], bux_route[l]);
                         
-                        if(checkSolution(aux_route, bux_route, data)) {
+                        // Verifica a validade de ambas as rotas alteradas
+                        if(isValid(aux_route, data) and isValid(bux_route, data)) {
+                            best_solution = new_solution;
                             ibest = k;
                             jbest = l;
-                            best_solution = new_solution;
-                            r1best = i;
-                            r2best = j;
-                            flag = true;
+                            best_route1 = i;
+                            best_route2 = j;
                         }
                     }
                     else continue;
@@ -210,26 +193,26 @@ bool Vnd::interSwap(Solution* solution, Data* data) {
         }
     }
     if(solution->cost != best_solution) {
-        swap(solution->routes[r1best][ibest], solution->routes[r2best][jbest]);
+        swap(solution->routes[best_route1][ibest], solution->routes[best_route2][jbest]);
         solution->cost = best_solution;
+        return true;
     }
-        
-    return flag;
+    return false;
 }
 
 bool Vnd::interReinsertion(Solution* solution, Data* data) {
     int best_solution = solution->cost;
-    int ibest = 0, jbest = 0, r1best = 0, r2best = 0;
-    bool flag = false;
+    int ibest = 0, jbest = 0, best_route1 = 0, best_route2 = 0;
     
     // Percorre cada rota da solução
     for(int i = 0; i < (int) solution->routes.size(); i++) {
         vector<int> &route1 = solution->routes[i];
+        
         // Percorre cada outra rota da solução
         for(int j = 0; j < (int) solution->routes.size(); j++) {
             if(i == j) continue;
-            
             vector<int> &route2 = solution->routes[j];
+            
             // Pecorre cada elemento da primeira rota para verificar inserção
             for(int k = 1; k < (int) solution->routes[i].size() - 1; k++) {
                 // Percorre todas as posições dos outros vetores
@@ -243,16 +226,17 @@ bool Vnd::interReinsertion(Solution* solution, Data* data) {
                     if(best_solution > new_solution) {
                         vector<int> aux_route = route1, bux_route = route2;
                         int aux = aux_route[k];
+                        
                         aux_route.erase(aux_route.begin() + k);
                         bux_route.insert(bux_route.begin() + l, aux);
 
-                        if(checkSolution(aux_route, bux_route, data)) {
+                        // Checa a validade de ambas as rotas alteradas
+                        if(isValid(aux_route, data) and isValid(bux_route, data)) {
+                            best_solution = new_solution;
                             ibest = k;
                             jbest = l;
-                            best_solution = new_solution;
-                            r1best = i;
-                            r2best = j;
-                            flag = true;
+                            best_route1 = i;
+                            best_route2 = j;
                         }
                     }
                     else continue;
@@ -260,10 +244,102 @@ bool Vnd::interReinsertion(Solution* solution, Data* data) {
             }
         }
     }
+    // Atualiza a solução com as novas rotas
     if(solution->cost != best_solution) {
-        int aux = solution->routes[r1best][ibest];
-        solution->routes[r1best].erase(solution->routes[r1best].begin() + ibest);
-        solution->routes[r2best].insert(solution->routes[r2best].begin() + jbest, aux);
+        int aux = solution->routes[best_route1][ibest];
+        solution->routes[best_route1].erase(solution->routes[best_route1].begin() + ibest);
+        solution->routes[best_route2].insert(solution->routes[best_route2].begin() + jbest, aux);
+        solution->cost = best_solution;
+        return true;
+    }
+    return false;
+}
+
+bool Vnd::inter2opt(Solution* solution, Data* data) {
+    int best_solution = solution->cost;
+    int ibest = 0, jbest = 0, r1best = 0, r2best = 0;
+    bool flag = false;
+
+    // Percorre cada rota i da solução
+    for(int i = 0; i < (int) solution->routes.size() - 1; i++) {
+        if(solution->routes[i].size() <= 3) continue;
+        vector<int> &route1 = solution->routes[i];
+
+        // Percorre cada rota j da solução
+        for(int j = i + 1; j < (int) solution->routes.size(); j++) {
+            if(solution->routes[i].size() <= 3 or i == j) continue;
+            vector<int> &route2 = solution->routes[j];
+
+            // Pecorre cada elemento da primeira rota
+            for(int k = 1; k < (int) route1.size() - 2; k++) {
+                // Percorre todos os elementos da outra rota
+                for(int l = 1; l < (int) route2.size() - 2; l++) {
+                    
+                    int new_solution = solution->cost
+                    - (data->transit_cost[route1[k]][route1[k+1]] + data->transit_cost[route2[l]][route2[l+1]])
+                    + (data->transit_cost[route1[k]][route2[l+1]] + data->transit_cost[route2[l]][route1[k+1]]);
+
+                    if(best_solution > new_solution) {
+                        vector<int> aux_route = route1, bux_route = route2;
+                        vector<int> tempA, tempB;
+                        
+                        for(int aux = (int) route1.size() - 1; aux > k; aux--) {
+                            tempA.push_back(aux_route.back());;
+                            aux_route.pop_back();
+                        }
+                        for(int aux = (int) route2.size() - 1; aux > l; aux--) {
+                            tempB.push_back(bux_route.back());
+                            bux_route.pop_back();                        
+                        }
+                        int A_siz = (int) tempA.size(), B_siz = (int) tempB.size();
+                        
+                        for(int aux = 1; aux <= B_siz; aux++)
+                            aux_route.push_back(tempB[B_siz - aux]);
+
+                        for(int aux = 1; aux <= A_siz ; aux++)
+                            bux_route.push_back(tempA[A_siz - aux]);
+                        
+                        if(isValid(aux_route, data) and isValid(bux_route, data)) {
+                            r1best = i;
+                            ibest = k;
+                            
+                            r2best = j;
+                            jbest = l;
+
+                            best_solution = new_solution;
+                            flag = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if(solution->cost != best_solution) {
+        vector<int> &routeA = solution->routes[r1best];
+        vector<int> &routeB = solution->routes[r2best];
+
+        vector<int> tempA, tempB;
+        
+        for(int aux = (int) routeA.size() - 1; aux > ibest; aux--) {
+            tempA.push_back(routeA.back());
+            routeA.pop_back();
+        }
+        
+        for(int aux = (int) routeB.size() - 1; aux > jbest; aux--) {
+            tempB.push_back(routeB.back());
+            routeB.pop_back();
+        }
+
+        int A_siz = (int) tempA.size(), B_siz = (int) tempB.size();
+        
+        for(int aux = 1; aux <= B_siz; aux++) {
+            routeA.push_back(tempB[B_siz - aux]);
+        }
+
+        for(int aux = 1; aux <= A_siz; aux++) {
+            routeB.push_back(tempA[A_siz - aux]);
+        }
+
         solution->cost = best_solution;
     }
     return flag;
@@ -273,7 +349,7 @@ bool Vnd::switchSearch(Solution* solution, Data* data, int option) {
     switch(option) {
         case 1:
         return intraSwap(solution, data);
-
+        
         case 2:
         return intraReinsertion(solution, data);
         
@@ -283,19 +359,22 @@ bool Vnd::switchSearch(Solution* solution, Data* data, int option) {
         case 4:
         return interReinsertion(solution, data);
 
+        case 5:
+        return inter2opt(solution, data);
+
         default: break;
     }
     return false;
 }
 
 void Vnd::vndAlgorithm(Solution* solution, Data* data, int neighbours) {
+    int k = neighbours;
+    while(k <= neighbours) k = switchSearch(solution, data, k) ? 1 : k + 1;
+}
+
+void Vnd::vndRandom(Solution* solution, Data* data, int neighbours) {
     srand(time(NULL));
-
-    int k = rand() % 4;
-    bool ret;
-
-    while(k <= neighbours) {
-        ret = switchSearch(solution, data, k);
-        k = ret ? (rand() % 4) : k + 1;
-    }
+    
+    int k = (rand() % 5) + 1;
+    while(k <= neighbours) k = switchSearch(solution, data, k) ? (rand() % 5) + 1 : k + 1;
 }
