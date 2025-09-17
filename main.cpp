@@ -8,6 +8,7 @@
 #include <string>
 #include <cerrno>
 #include <vector>
+#include <ctime>
 
 using namespace std;
 
@@ -38,55 +39,95 @@ int readFile(string path, Data* data) {
     return 0;
 }
 
-void printSolution(Solution solution) {
+double gap(int optimal, Solution* solution) {
+    int solution_optimal = solution->cost;
+    double gap = ((float) solution_optimal - (float) optimal) / float(optimal);
+    return gap * 100;
+}
+
+void printSolution(Solution solution, int optimal) {
+    double gap_value = gap(optimal, &solution);
+    
     for(int i = 0; i < (int) solution.routes.size(); i++) {
         cout << "Rota " << i + 1 << ": ";
         for(int j = 0; j < (int) solution.routes[i].size(); j++) cout << solution.routes[i][j] << " ";
         cout << endl;
     }
     cout << endl;
-    cout << "Custo: " << solution.cost << endl;    
+    cout << "Custo: " << solution.cost << " (GAP: " << gap_value << "%)" << endl;
 }
 
-void printCost(Solution solution, Data data) {
-    int trueCost = 0;
-    for(int i = 0; i < (int) solution.routes.size(); i++) {
-        vector<int> curr_r = solution.routes[i];
-        for(int j = 0; j < (int) curr_r.size() - 1; j++) {
-            trueCost += data.transit_cost[curr_r[j]][curr_r[j+1]];
-        }
-    }
-    cout << "Custo real: " << trueCost << "\tDiferenca: " << solution.cost-trueCost << endl;
-}
+void vndRunner(Solution* solution, Data* data, int optimal) {
+    Solution aux_solution = *solution;
+    clock_t str, end;
 
-void runner(Solution* solution, Data* data, int algorithm, int neighbor) {
-    switch(algorithm) {
-        case 1:
-        Algorithms::greedySolver(data, solution);
-        break;
-        
-        case 2:
-        Algorithms::bestInsertion(data, solution);
-        break;
-        
-        default: return;
-    }
-    Vnd::vndAlgorithm(solution, data, neighbor);
+    cout << ">>> VND DETERMINISTICO: " << endl << endl;
+    str = clock();
+    Vnd::vndAlgorithm(&aux_solution, data, 4);
+    end = clock();
+    
+    printSolution(aux_solution, optimal);
+    cout << "Tempo de execucao em milissegundos: " << 1000 * (double(end - str) / CLOCKS_PER_SEC) << endl;
 
-    printSolution(*solution);
-    printCost(*solution, *data);
+    cout << "\n>>> VND RANDOMICO: " << endl << endl;
+    
+    Solution aux, best_solution = *solution;
+    double avg_cost = 0.0;
+    
+    str = clock();
+    for(int i = 0; i < 1000; i++) {
+        aux = *solution;
+        Vnd::vndRandom(&aux, data, 4);
+        avg_cost += (double) aux.cost;
+
+        if(aux.cost < best_solution.cost) best_solution = aux;
+    }
+    end = clock();
+    avg_cost = avg_cost / 1000;
+
+    printSolution(best_solution, optimal);
+    cout << "Tempo de execucao em milissegundos: " << 1000 * (double(end - str) / CLOCKS_PER_SEC) << endl;
+    cout << "Media das solucoes: " << avg_cost << endl;
+
+    *solution = best_solution.cost < aux_solution.cost ? best_solution : aux_solution;
 }
 
 int main(int argc, char* argv[]) {
+    clock_t str, end;
+    Solution solution1, solution2;
     Data data;
-    Solution solution;
 
-    if(argc < 2) {
-        cerr << "Passe o caminho do arquivo" << endl;
+    if(argc < 3) {
+        cerr << "Passe o caminho do arquivo e sua solucao otima" << endl;
         return 1;
     }
     readFile(argv[1], &data);
 
-    runner(&solution, &data, 1, 4);
+    str = clock();
+    Algorithms::greedySolver(&data, &solution1); // Resolve primeiro com o greedySolver
+    end = clock();
+
+    solution1.execution_time = double(end - str) / CLOCKS_PER_SEC;
+    
+    cout << "\n== SOLUCAO DO GREEDY SOLVER SEM O VND ===\n" << endl;
+    printSolution(solution1, stoi(argv[2]));
+    cout << "Tempo de execucao em milissegundos: " << 1000 * solution1.execution_time << endl;
+
+    cout << "\n=== SOLUCAO DO GREEDY SOLVER COM O VND ===\n" << endl;
+    vndRunner(&solution1, &data, stoi(argv[2]));
+
+    str = clock();
+    Algorithms::bestInsertion(&data, &solution2); // Resolve o problema com o bestInsertion
+    end = clock();
+
+    solution2.execution_time = double(end - str) / CLOCKS_PER_SEC;
+    
+    cout << "\n== SOLUCAO DO BEST INSERTION SEM O VND ===\n" << endl;
+    printSolution(solution2, stoi(argv[2]));
+    cout << "Tempo de execucao em segundos: " << solution2.execution_time << endl;
+
+    cout << "\n=== SOLUCAO DO BEST INSERTION COM O VND ===\n" << endl;
+    vndRunner(&solution2, &data, stoi(argv[2]));
+
     return 0;
 }

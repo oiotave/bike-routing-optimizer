@@ -9,12 +9,26 @@ using namespace std;
 Algorithms::Algorithms() {
 }
 
+/**
+ * Essa função permuta dois nós do heap mínimo de custos
+ * 
+ * @param heap Fila de prioridade de custos
+ * @param adddr1 Endereço do primeiro nó a ser permutado
+ * @param addr2 Endereço do segundo nó a ser permutado
+ */
 void Algorithms::swap(vector<HeapNode> &heap, int addr1, int addr2) {
     HeapNode aux = heap[addr1];
     heap[addr1] = heap[addr2];
     heap[addr2] = aux;
 }
 
+/**
+ * Executa as trocas de nós com base na prioridade
+ * 
+ * @param heap Fila de prioridade de custos
+ * @param index Índice do nó a ser analisado
+ * @param size Tamanho da fila de prioridade
+ */
 void Algorithms::heapify(vector<HeapNode> &heap, int index, int size) {
     int min = index;
     int lft = 2 * index + 1, rgt = 2 * index + 2;
@@ -28,11 +42,24 @@ void Algorithms::heapify(vector<HeapNode> &heap, int index, int size) {
     }
 }
 
+/**
+ * Transforma o vetor em uma fila de prioridade
+ * 
+ * @param size Tamanho da fila de prioridade
+ * @param heap Fila de prioridade de custos a ser feita
+ */
 void Algorithms::makeHeap(int size, vector<HeapNode> &heap) {
     int initial_node = (size / 2) - 1;
     for(int i = initial_node; i >= 0; i--) heapify(heap, i, size);
 }
 
+/**
+ * Checa a validade de uma rota encontrada
+ * 
+ * @param data Dados do problema
+ * @param route Rota a ser analisada
+ * @return bool Validade da rota 
+ */
 bool Algorithms::isValid(Data* data, vector<int> &route) {
     int load = 0, initial_load = 0;
 
@@ -58,6 +85,12 @@ bool Algorithms::isValid(Data* data, vector<int> &route) {
     return required_initial <= data->vehicle_capacity;
 }
 
+/**
+ * Executa o algoritmo guloso com a lógica de vizinho mais próximo
+ * 
+ * @param data Dados do problema
+ * @param solution Campo para armazenar informações da solução obtida
+ */
 void Algorithms::greedySolver(Data* data, Solution* solution) {
     // Armazena o número de estações ainda não visitadas
     int not_visited[data->facilities];
@@ -124,6 +157,12 @@ void Algorithms::greedySolver(Data* data, Solution* solution) {
     }
 }
 
+/**
+ * Executa o algoritmo guloso com a lógica de melhor inserção
+ * 
+ * @param data Dados do problema
+ * @param solution Campo para armazenar as informações da solução obtida
+ */
 void Algorithms::bestInsertion(Data* data, Solution* solution) {
     int best_route = 0, best_pos = 1, first_empty_route = 1, best_insertion;
 

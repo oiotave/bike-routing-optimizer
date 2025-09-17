@@ -12,6 +12,13 @@ using namespace std;
 Vnd::Vnd() {
 }
 
+/**
+ * Checa a validade de uma rota encontrada
+ * 
+ * @param data Dados do problema
+ * @param route Rota a ser analisada
+ * @return bool Validade da rota 
+ */
 bool Vnd::isValid(vector<int> &route, Data* data) {
     int load = 0, initial_load = 0;
 
@@ -37,6 +44,13 @@ bool Vnd::isValid(vector<int> &route, Data* data) {
     return required_initial <= data->vehicle_capacity;
 }
 
+/**
+ * Executa a vizinhança do swap para uma mesma rota
+ * 
+ * @param solution Solução inicial encontrada
+ * @param data Dados do problema
+ * @return bool Indicador de ocorrência de melhora
+ */
 bool Vnd::intraSwap(Solution* solution, Data* data) {
     int ibest = 0, jbest = 0, best_solution = solution->cost;
     
@@ -92,6 +106,13 @@ bool Vnd::intraSwap(Solution* solution, Data* data) {
     return false;
 }
 
+/**
+ * Executa a vizinhança da reinserção para uma mesma rota
+ * 
+ * @param solution Solução inicial encontrada
+ * @param data Dados do problema
+ * @return bool Indicador de ocorrência de melhora
+ */
 bool Vnd::intraReinsertion(Solution* solution, Data* data) {
     int best_element = 0, best_position = 0, best_solution = solution->cost;
     
@@ -150,6 +171,13 @@ bool Vnd::intraReinsertion(Solution* solution, Data* data) {
     return false;
 }
 
+/**
+ * Executa a vizinhança do swap para rotas diferentes
+ * 
+ * @param solution Solução inicial encontrada
+ * @param data Dados do problema
+ * @return bool Indicador de ocorrência de melhora
+ */
 bool Vnd::interSwap(Solution* solution, Data* data) {
     int best_solution = solution->cost;
     int ibest = 0, jbest = 0, best_route1 = 0, best_route2 = 0;
@@ -200,6 +228,13 @@ bool Vnd::interSwap(Solution* solution, Data* data) {
     return false;
 }
 
+/**
+ * Executa a vizinhança da reinserção para rotas diferentes
+ * 
+ * @param solution Solução inicial encontrada
+ * @param data Dados do problema
+ * @return bool Indicador de ocorrência de melhora
+ */
 bool Vnd::interReinsertion(Solution* solution, Data* data) {
     int best_solution = solution->cost;
     int ibest = 0, jbest = 0, best_route1 = 0, best_route2 = 0;
@@ -255,17 +290,23 @@ bool Vnd::interReinsertion(Solution* solution, Data* data) {
     return false;
 }
 
+/**
+ * Executa a vizinhança do two-opt para uma mesma rota
+ * 
+ * @param solution Solução inicial encontrada
+ * @param data Dados do problema
+ * @return bool Indicador de ocorrência de melhora
+ */
 bool Vnd::inter2opt(Solution* solution, Data* data) {
     int best_solution = solution->cost;
-    int ibest = 0, jbest = 0, r1best = 0, r2best = 0;
-    bool flag = false;
+    int ibest = 0, jbest = 0, best_route1 = 0, best_route2 = 0;
 
-    // Percorre cada rota i da solução
+    // Percorre cada rota da solução
     for(int i = 0; i < (int) solution->routes.size() - 1; i++) {
         if(solution->routes[i].size() <= 3) continue;
         vector<int> &route1 = solution->routes[i];
 
-        // Percorre cada rota j da solução
+        // Percorre cada outra rota da solução
         for(int j = i + 1; j < (int) solution->routes.size(); j++) {
             if(solution->routes[i].size() <= 3 or i == j) continue;
             vector<int> &route2 = solution->routes[j];
@@ -299,52 +340,52 @@ bool Vnd::inter2opt(Solution* solution, Data* data) {
                         for(int aux = 1; aux <= A_siz ; aux++)
                             bux_route.push_back(tempA[A_siz - aux]);
                         
+                        // Checa a validade da solução com os auxiliares
                         if(isValid(aux_route, data) and isValid(bux_route, data)) {
-                            r1best = i;
-                            ibest = k;
-                            
-                            r2best = j;
-                            jbest = l;
-
                             best_solution = new_solution;
-                            flag = true;
+                            best_route1 = i;
+                            ibest = k;
+                            best_route2 = j;
+                            jbest = l;
                         }
                     }
                 }
             }
         }
     }
+    // Substitui a solução pelo melhor valor encontrado
     if(solution->cost != best_solution) {
-        vector<int> &routeA = solution->routes[r1best];
-        vector<int> &routeB = solution->routes[r2best];
-
+        vector<int> &routeA = solution->routes[best_route1];
+        vector<int> &routeB = solution->routes[best_route2];
         vector<int> tempA, tempB;
         
         for(int aux = (int) routeA.size() - 1; aux > ibest; aux--) {
             tempA.push_back(routeA.back());
             routeA.pop_back();
         }
-        
         for(int aux = (int) routeB.size() - 1; aux > jbest; aux--) {
             tempB.push_back(routeB.back());
             routeB.pop_back();
         }
-
         int A_siz = (int) tempA.size(), B_siz = (int) tempB.size();
         
-        for(int aux = 1; aux <= B_siz; aux++) {
-            routeA.push_back(tempB[B_siz - aux]);
-        }
-
-        for(int aux = 1; aux <= A_siz; aux++) {
-            routeB.push_back(tempA[A_siz - aux]);
-        }
+        for(int aux = 1; aux <= B_siz; aux++) routeA.push_back(tempB[B_siz - aux]);
+        for(int aux = 1; aux <= A_siz; aux++) routeB.push_back(tempA[A_siz - aux]);
 
         solution->cost = best_solution;
+        return true;
     }
-    return flag;
+    return false;
 }
 
+/**
+ * Escolhe entre um dos moveimtnos de vizinhança
+ * 
+ * @param solution Solução inicial encontrada
+ * @param data Dados do problema
+ * @param option Índice do movimento escolhido
+ * @return bool Indicador de ocorrência de melhora
+ */
 bool Vnd::switchSearch(Solution* solution, Data* data, int option) {
     switch(option) {
         case 1:
@@ -359,7 +400,8 @@ bool Vnd::switchSearch(Solution* solution, Data* data, int option) {
         case 4:
         return interReinsertion(solution, data);
 
-        case 5:
+        // Essa vizinhança foi desativada, pois mesmo que melhorasse no início, ficava presa em um mínimo local
+        case 5: break;
         return inter2opt(solution, data);
 
         default: break;
@@ -367,11 +409,25 @@ bool Vnd::switchSearch(Solution* solution, Data* data, int option) {
     return false;
 }
 
+/**
+ * Essa função implementa a lógica do algoritmo VND
+ * 
+ * @param solution Solução inicial do problema
+ * @param data Dados do problema
+ * @param neighbours Número de vizinhanças usadasd
+ */
 void Vnd::vndAlgorithm(Solution* solution, Data* data, int neighbours) {
     int k = neighbours;
     while(k <= neighbours) k = switchSearch(solution, data, k) ? 1 : k + 1;
 }
 
+/**
+ * Essa função implementa a lógica do algoritmo VND randômico
+ * 
+ * @param solution Solução inicial do problema
+ * @param data Dados do problema
+ * @param neighbours Número de vizinhanças usadasd
+ */
 void Vnd::vndRandom(Solution* solution, Data* data, int neighbours) {
     srand(time(NULL));
     

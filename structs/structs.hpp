@@ -15,7 +15,10 @@ struct solution_t {
     // Caminho de cada rota feita
     vector<vector<int>> routes;
 
-    solution_t() { this->cost = 0; this->used_vehicles = 0; }
+    // Tempo de execução do algoritmo
+    double execution_time;
+
+    solution_t() { this->cost = 0; this->used_vehicles = 0; this->execution_time = 0.0; }
 };
 typedef solution_t Solution;
 
