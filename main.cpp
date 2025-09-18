@@ -12,6 +12,12 @@
 
 using namespace std;
 
+/**
+ * Lê o arquivo de entrada com as informações da instância
+ * 
+ * @param path Caminho relativo do arquivo em texto
+ * @param data Dados do problema
+ */
 int readFile(string path, Data* data) { 
     FILE *file = fopen(path.c_str(), "r");
 
@@ -39,12 +45,25 @@ int readFile(string path, Data* data) {
     return 0;
 }
 
+/**
+ * Calcula a diferença percentual entre a solução ótima e o ótimo obtido pelo algoritmo
+ * 
+ * @param optimal Solução ótima da instância
+ * @param solution Solução inicial
+ * @return Diferença percentual entre os valores das soluções
+ */
 double gap(int optimal, Solution* solution) {
     int solution_optimal = solution->cost;
     double gap = ((float) solution_optimal - (float) optimal) / float(optimal);
     return gap * 100;
 }
 
+/**
+ * Mostra a solução do problema, rota a rota
+ * 
+ * @param solution Solução do problema obtida
+ * @param optimal Solução ótima da instância
+ */
 void printSolution(Solution solution, int optimal) {
     double gap_value = gap(optimal, &solution);
     
@@ -57,6 +76,13 @@ void printSolution(Solution solution, int optimal) {
     cout << "Custo: " << solution.cost << " (GAP: " << gap_value << "%)" << endl;
 }
 
+/**
+ * Executa as duas versões do VND e mostra resultados no console
+ * 
+ * @param solution Solução do problema obtido
+ * @param data Dados da instância
+ * @param optimal Valor ótimo da instância
+ */
 void vndRunner(Solution* solution, Data* data, int optimal) {
     Solution aux_solution = *solution;
     clock_t str, end;
