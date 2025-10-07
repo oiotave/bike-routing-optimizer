@@ -417,7 +417,7 @@ bool Vnd::switchSearch(Solution* solution, Data* data, int option) {
  * @param neighbours Número de vizinhanças usadasd
  */
 void Vnd::vndAlgorithm(Solution* solution, Data* data, int neighbours) {
-    int k = neighbours;
+    int k = 1;
     while(k <= neighbours) k = switchSearch(solution, data, k) ? 1 : k + 1;
 }
 
@@ -433,4 +433,5 @@ void Vnd::vndRandom(Solution* solution, Data* data, int neighbours) {
     
     int k = (rand() % 5) + 1;
     while(k <= neighbours) k = switchSearch(solution, data, k) ? (rand() % 5) + 1 : k + 1;
+
 }
